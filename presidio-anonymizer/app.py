@@ -173,17 +173,28 @@ class Server:
 
         @self.app.route("/genz-preview", methods=["GET"])
         def genz_preview():
-            """Return a sample preview for genz operator"""
+            """Return a sample preview for genz operator."""
             example = {
-                "text": "Please contact Emily Carter at 734-555-9284 if you have questions about the workshop registration.",
+                "text": (
+                    "Please contact Emily Carter at 734-555-9284 "
+                    "if you have questions about the workshop registration."
+                ),
                 "analyzer_results": [
                     {"start": 15, "end": 27, "score": 0.3, "entity_type": "PERSON"},
-                    {"start": 31, "end": 43, "score": 0.95, "entity_type": "PHONE_NUMBER"},
+                    {
+                        "start": 31,
+                        "end": 43,
+                        "score": 0.95,
+                        "entity_type": "PHONE_NUMBER",
+                    },
                 ],
             }
 
             example_output = {
-                "text": "Please contact GOAT at oop— if you have questions about the workshop registration.",
+                "text": (
+                    "Please contact GOAT at oop— "
+                    "if you have questions about the workshop registration."
+                ),
                 "items": [
                     {
                         "start": 23,
@@ -207,6 +218,7 @@ class Server:
                 "example": example,
                 "example output": example_output,
             }
+
             return jsonify(payload)
 
         @self.app.route("/deanonymizers", methods=["GET"])
