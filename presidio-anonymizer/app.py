@@ -1,16 +1,19 @@
 """REST API server for anonymizer."""
 
+import json
 import logging
 import os
 from logging.config import fileConfig
 from pathlib import Path
 
-import json
 from flask import Flask, Response, jsonify, request
+from werkzeug.exceptions import BadRequest, HTTPException
+
 from presidio_anonymizer import AnonymizerEngine, DeanonymizeEngine
 from presidio_anonymizer.entities import InvalidParamError
-from presidio_anonymizer.services.app_entities_convertor import AppEntitiesConvertor
-from werkzeug.exceptions import BadRequest, HTTPException
+from presidio_anonymizer.services.app_entities_convertor import (
+    AppEntitiesConvertor,
+)
 
 DEFAULT_PORT = "3000"
 
@@ -89,7 +92,14 @@ class Server:
 
         @self.app.route("/genz", methods=["POST"])
         def genz():
-            """Return a genz-style anonymization result"""
+            """Return a genz-style anonymization result.
+
+            Expected JSON body:
+            {
+                "text": "...",
+                "analyzer_results": [ {"start":.., "end":.., "entity_type":"..."}, ... ]
+            }
+            """
             content = request.get_json()
             if not content:
                 raise BadRequest("Invalid request json")
@@ -102,7 +112,7 @@ class Server:
             if analyzer_results is None:
                 return jsonify(error="Missing 'analyzer_results' in request body"), 400
 
-            #if analyzer_results was accidentally sent as a string try to parse it
+            # if analyzer_results was accidentally sent as a string, try to parse it
             if isinstance(analyzer_results, str):
                 try:
                     analyzer_results = json.loads(analyzer_results)
@@ -112,9 +122,7 @@ class Server:
                         400,
                     )
 
-        
-
-            #simple replacement map for genz operator
+            # simple replacement map for genz operator
             replacement_map = {
                 "PERSON": "GOAT",
                 "PHONE_NUMBER": "oop—",
@@ -123,8 +131,10 @@ class Server:
             #perform replacements
             items = []
             result_text = text
-            #sort by start descending
-            sorted_results = sorted(analyzer_results, key=lambda r: r.get("start", 0), reverse=True)
+            # sort by start descending
+            sorted_results = sorted(
+                analyzer_results, key=lambda r: r.get("start", 0), reverse=True
+            )
             for res in sorted_results:
                 try:
                     start = int(res.get("start", 0))
