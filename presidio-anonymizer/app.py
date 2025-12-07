@@ -91,6 +91,19 @@ class Server:
             """Return a list of supported anonymizers."""
             return jsonify(self.anonymizer.get_anonymizers())
 
+        @self.app.route("/genz-preview", methods=["GET"])
+        def genz_preview():
+            """Return a sample JSON preview for genz integration."""
+            preview = {
+                "service": "presidio-anonymizer",
+                "endpoint": "genz-preview",
+                "preview": {
+                    "id": 1,
+                    "text": "This is a sample preview response for GenZ integration",
+                },
+            }
+            return jsonify(preview)
+
         @self.app.route("/deanonymizers", methods=["GET"])
         def deanonymizers():
             """Return a list of supported deanonymizers."""
