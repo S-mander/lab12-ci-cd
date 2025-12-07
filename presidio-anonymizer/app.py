@@ -221,6 +221,11 @@ class Server:
 
             return jsonify(payload)
 
+        @self.app.route("/anonymizers", methods=["GET"])
+        def anonymizers():
+            """Return a list of supported anonymizers."""
+            return jsonify(self.anonymizer.get_anonymizers())
+
         @self.app.route("/deanonymizers", methods=["GET"])
         def deanonymizers():
             """Return a list of supported deanonymizers."""
