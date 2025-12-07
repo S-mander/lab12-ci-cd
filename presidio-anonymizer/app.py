@@ -5,6 +5,7 @@ import os
 from logging.config import fileConfig
 from pathlib import Path
 
+import json
 from flask import Flask, Response, jsonify, request
 from presidio_anonymizer import AnonymizerEngine, DeanonymizeEngine
 from presidio_anonymizer.entities import InvalidParamError
@@ -86,23 +87,80 @@ class Server:
                 deanonymized_response.to_json(), mimetype="application/json"
             )
 
-        @self.app.route("/anonymizers", methods=["GET"])
-        def anonymizers():
-            """Return a list of supported anonymizers."""
-            return jsonify(self.anonymizer.get_anonymizers())
+        @self.app.route("/genz", methods=["POST"])
+        def genz():
+            """Return a genz-style anonymization result"""
+            content = request.get_json()
+            if not content:
+                raise BadRequest("Invalid request json")
 
-        @self.app.route("/genz-preview", methods=["GET"])
-        def genz_preview():
-            """Return a sample JSON preview for genz integration."""
-            preview = {
-                "service": "presidio-anonymizer",
-                "endpoint": "genz-preview",
-                "preview": {
-                    "id": 1,
-                    "text": "This is a sample preview response for GenZ integration",
-                },
+            text = content.get("text", "")
+            analyzer_results = content.get("analyzer_results")
+
+            if not text:
+                return jsonify(error="Missing 'text' in request body"), 400
+            if analyzer_results is None:
+                return jsonify(error="Missing 'analyzer_results' in request body"), 400
+
+            #if analyzer_results was accidentally sent as a string try to parse it
+            if isinstance(analyzer_results, str):
+                try:
+                    analyzer_results = json.loads(analyzer_results)
+                except Exception as e:
+                    return (
+                        jsonify(error="Invalid 'analyzer_results' JSON: %s" % str(e)),
+                        400,
+                    )
+
+        
+
+            #simple replacement map for genz operator
+            replacement_map = {
+                "PERSON": "GOAT",
+                "PHONE_NUMBER": "oop—",
             }
-            return jsonify(preview)
+
+            #perform replacements
+            items = []
+            result_text = text
+            #sort by start descending
+            sorted_results = sorted(analyzer_results, key=lambda r: r.get("start", 0), reverse=True)
+            for res in sorted_results:
+                try:
+                    start = int(res.get("start", 0))
+                    end = int(res.get("end", start))
+                except Exception:
+                    continue
+                entity_type = res.get("entity_type")
+                replacement = replacement_map.get(entity_type, "<GENZ>")
+
+                #guard indexes
+                if start < 0:
+                    start = 0
+                if end > len(result_text):
+                    end = len(result_text)
+
+                #replace the slice
+                result_text = result_text[:start] + replacement + result_text[end:]
+
+                #new end is start + len(replacement)
+                new_start = start
+                new_end = start + len(replacement)
+
+                items.append(
+                    {
+                        "start": new_start,
+                        "end": new_end,
+                        "entity_type": entity_type,
+                        "text": replacement,
+                        "operator": "genz",
+                    }
+                )
+
+            #return items in original order
+            items = sorted(items, key=lambda i: i.get("start", 0))
+
+            return jsonify({"text": result_text, "items": items})
 
         @self.app.route("/deanonymizers", methods=["GET"])
         def deanonymizers():
