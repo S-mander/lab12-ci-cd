@@ -3,7 +3,7 @@ import json
 import pytest
 
 from common.assertions import equal_json_strings
-from common.methods import anonymize, anonymizers, deanonymize
+from common.methods import anonymize, anonymizers, deanonymize, genz
 
 
 @pytest.mark.api
@@ -39,6 +39,27 @@ def test_given_anonymize_called_with_valid_request_then_expected_valid_response_
 
     assert response_status == 200
     assert equal_json_strings(expected_response, response_content)
+
+
+@pytest.mark.api
+def test_given_anonymize_called_with_genz_then_expected_valid_response_returned():
+    request_body = {
+        "text": "Please contact Emily Carter at 734-555-9284 if you have questions about the workshop registration.",
+        "analyzer_results": [
+            {"start": 15, "end": 27, "score": 0.3, "entity_type": "PERSON"},
+            {"start": 31, "end": 43, "score": 0.95, "entity_type": "PHONE_NUMBER"},
+        ],
+    }
+
+    response_status, response_content = genz(json.dumps(request_body))
+
+    # The genz operator contains randomness assert only status and valid JSON body
+    assert response_status == 200
+    # Ensure response is valid JSON and has expected top level keys
+    parsed = json.loads(response_content)
+    assert isinstance(parsed, dict)
+    assert "text" in parsed
+    assert "items" in parsed
 
 
 @pytest.mark.api
