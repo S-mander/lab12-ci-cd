@@ -171,6 +171,44 @@ class Server:
 
             return jsonify({"text": result_text, "items": items})
 
+        @self.app.route("/genz-preview", methods=["GET"])
+        def genz_preview():
+            """Return a sample preview for genz operator"""
+            example = {
+                "text": "Please contact Emily Carter at 734-555-9284 if you have questions about the workshop registration.",
+                "analyzer_results": [
+                    {"start": 15, "end": 27, "score": 0.3, "entity_type": "PERSON"},
+                    {"start": 31, "end": 43, "score": 0.95, "entity_type": "PHONE_NUMBER"},
+                ],
+            }
+
+            example_output = {
+                "text": "Please contact GOAT at oop— if you have questions about the workshop registration.",
+                "items": [
+                    {
+                        "start": 23,
+                        "end": 27,
+                        "entity_type": "PHONE_NUMBER",
+                        "text": "oop—",
+                        "operator": "genz",
+                    },
+                    {
+                        "start": 15,
+                        "end": 19,
+                        "entity_type": "PERSON",
+                        "text": "GOAT",
+                        "operator": "genz",
+                    },
+                ],
+            }
+
+            payload = {
+                "description": "GenZ anonymization operator preview",
+                "example": example,
+                "example output": example_output,
+            }
+            return jsonify(payload)
+
         @self.app.route("/deanonymizers", methods=["GET"])
         def deanonymizers():
             """Return a list of supported deanonymizers."""
